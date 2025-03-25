@@ -39,10 +39,9 @@ pub trait QueryableDataset: Sized + 'static {
     ) -> Box<dyn Iterator<Item = Result<InternalQuad<Self>, Self::Error>>>; // TODO: consider `impl`
 
     /// Fetches the list of dataset named graphs
-    fn internal_named_graphs(
-        &self,
-    ) -> Box<dyn Iterator<Item = Result<Self::InternalTerm, Self::Error>>> {
-        // TODO: consider `impl`
+    fn internal_named_graphs<'a>(
+        &'a self,
+    ) -> impl Iterator<Item = Result<Self::InternalTerm, Self::Error>> + 'a {
         let mut error = None;
         let graph_names = self
             .internal_quads_for_pattern(None, None, None, None)
@@ -55,12 +54,10 @@ pub trait QueryableDataset: Sized + 'static {
             })
             .collect::<FxHashSet<_>>();
 
-        Box::new(
-            error
-                .map(Err)
-                .into_iter()
-                .chain(graph_names.into_iter().map(Ok)),
-        )
+        error
+            .map(Err)
+            .into_iter()
+            .chain(graph_names.into_iter().map(Ok))
     }
 
     /// Returns if the dataset contains a given named graph

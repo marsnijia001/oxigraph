@@ -187,8 +187,8 @@ impl QueryableDataset for DatasetView {
         }
     }
 
-    fn internal_named_graphs(&self) -> Box<dyn Iterator<Item = Result<EncodedTerm, StorageError>>> {
-        Box::new(self.reader.named_graphs())
+    fn internal_named_graphs(&self) -> impl Iterator<Item = Result<EncodedTerm, StorageError>> {
+        self.reader.named_graphs()
     }
 
     fn contains_internal_graph_name(&self, graph_name: &EncodedTerm) -> Result<bool, StorageError> {

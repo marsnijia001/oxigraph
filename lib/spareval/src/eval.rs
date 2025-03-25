@@ -58,9 +58,9 @@ impl<D: QueryableDataset> EvalDataset<D> {
             .map(|r| r.map_err(|e| QueryEvaluationError::Dataset(Box::new(e))))
     }
 
-    fn internal_named_graphs(
-        &self,
-    ) -> impl Iterator<Item = Result<D::InternalTerm, QueryEvaluationError>> {
+    fn internal_named_graphs<'a>(
+        &'a self,
+    ) -> impl Iterator<Item = Result<D::InternalTerm, QueryEvaluationError>> + 'a {
         self.dataset
             .internal_named_graphs()
             .map(|r| r.map_err(|e| QueryEvaluationError::Dataset(Box::new(e))))
@@ -997,28 +997,30 @@ impl<D: QueryableDataset> SimpleEvaluator<D> {
                             Err(e) => Box::new(once(Err(e))),
                         }
                     } else {
+
                         let graph_name_selector = graph_name_selector.clone();
                         #[cfg(feature = "rdf-star")]
-                        let dataset = dataset.clone();
-                        Box::new(
-                            dataset
-                                .internal_named_graphs()
-                                .map(move |graph_name| {
-                                    let graph_name = graph_name?;
-                                    let mut new_tuple = from.clone();
-                                    if !put_pattern_value(
-                                        &graph_name_selector,
-                                        graph_name,
-                                        &mut new_tuple,
-                                        #[cfg(feature = "rdf-star")]
-                                        &dataset,
-                                    )? {
-                                        return Ok(None);
-                                    }
-                                    Ok(Some(new_tuple))
-                                })
-                                .filter_map(Result::transpose),
-                        )
+                        let dataset_clone= dataset.clone();
+                        let data = dataset
+                            .internal_named_graphs()
+                            .map(move |graph_name| {
+                                let graph_name = graph_name?;
+                                let mut new_tuple = from.clone();
+                                if !put_pattern_value(
+                                    &graph_name_selector,
+                                    graph_name,
+                                    &mut new_tuple,
+                                    #[cfg(feature = "rdf-star")]
+                                    &dataset_clone,
+                                )? {
+                                    return Ok(None);
+                                }
+                                Ok(Some(new_tuple))
+                            })
+                            .filter_map(Result::transpose)
+                            .collect::<Vec<Result<InternalTuple<D>, QueryEvaluationError>>>(
+                            );
+                        Box::new(data.into_iter())
                     }
                 })
             }
