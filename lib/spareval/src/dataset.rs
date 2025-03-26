@@ -12,7 +12,6 @@ use rustc_hash::FxHashSet;
 use std::convert::Infallible;
 use std::error::Error;
 use std::hash::{Hash, Hasher};
-use std::iter::empty;
 use std::mem::discriminant;
 
 /// A [RDF dataset](https://www.w3.org/TR/sparql11-query/#rdfDataset) that can be queried using SPARQL
@@ -39,9 +38,9 @@ pub trait QueryableDataset: Sized + 'static {
     ) -> impl Iterator<Item = Result<InternalQuad<Self>, Self::Error>>; // TODO: consider `impl`
 
     /// Fetches the list of dataset named graphs
-    fn internal_named_graphs<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<Self::InternalTerm, Self::Error>> + 'a {
+    fn internal_named_graphs(
+        &self,
+    ) -> impl Iterator<Item = Result<Self::InternalTerm, Self::Error>> + '_ {
         let mut error = None;
         let graph_names = self
             .internal_quads_for_pattern(None, None, None, None)

@@ -53,17 +53,17 @@ impl<D: QueryableDataset> EvalDataset<D> {
         object: Option<&D::InternalTerm>,
         graph_name: Option<Option<&D::InternalTerm>>,
     ) -> impl Iterator<Item = Result<InternalQuad<D>, QueryEvaluationError>> + 'static {
-
-        let data = self.dataset
+        let data = self
+            .dataset
             .internal_quads_for_pattern(subject, predicate, object, graph_name)
             .map(|r| r.map_err(|e| QueryEvaluationError::Dataset(Box::new(e))))
             .collect::<Vec<Result<InternalQuad<D>, QueryEvaluationError>>>();
         data.into_iter()
     }
 
-    fn internal_named_graphs<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<D::InternalTerm, QueryEvaluationError>> + 'a {
+    fn internal_named_graphs(
+        &self,
+    ) -> impl Iterator<Item = Result<D::InternalTerm, QueryEvaluationError>> + '_ {
         self.dataset
             .internal_named_graphs()
             .map(|r| r.map_err(|e| QueryEvaluationError::Dataset(Box::new(e))))
@@ -1000,10 +1000,9 @@ impl<D: QueryableDataset> SimpleEvaluator<D> {
                             Err(e) => Box::new(once(Err(e))),
                         }
                     } else {
-
                         let graph_name_selector = graph_name_selector.clone();
                         #[cfg(feature = "rdf-star")]
-                        let dataset_clone= dataset.clone();
+                        let dataset_clone = dataset.clone();
                         let data = dataset
                             .internal_named_graphs()
                             .map(move |graph_name| {
@@ -1021,8 +1020,7 @@ impl<D: QueryableDataset> SimpleEvaluator<D> {
                                 Ok(Some(new_tuple))
                             })
                             .filter_map(Result::transpose)
-                            .collect::<Vec<Result<InternalTuple<D>, QueryEvaluationError>>>(
-                            );
+                            .collect::<Vec<Result<InternalTuple<D>, QueryEvaluationError>>>();
                         Box::new(data.into_iter())
                     }
                 })

@@ -10,7 +10,6 @@ use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
-use std::iter::empty;
 use std::sync::Arc;
 
 pub struct DatasetView {
@@ -78,7 +77,8 @@ impl QueryableDataset for DatasetView {
                                     Some(quad.graph_name)
                                 },
                             })
-                        }).collect::<Vec<_>>()
+                        })
+                        .collect::<Vec<_>>()
                 } else {
                     Vec::new()
                 }
@@ -100,11 +100,12 @@ impl QueryableDataset for DatasetView {
                                 object: quad.object,
                                 graph_name: None,
                             })
-                        }).collect::<Vec<_>>()
+                        })
+                        .collect::<Vec<_>>()
                 } else {
                     default_graph_graphs
                         .iter()
-                        .map(|graph_name| {
+                        .flat_map(|graph_name| {
                             self.reader.quads_for_pattern(
                                 subject,
                                 predicate,
@@ -112,15 +113,16 @@ impl QueryableDataset for DatasetView {
                                 Some(graph_name),
                             )
                         })
-                        .flatten().map(|quad| {
-                        let quad = quad?;
-                        Ok(InternalQuad {
-                            subject: quad.subject,
-                            predicate: quad.predicate,
-                            object: quad.object,
-                            graph_name: None,
+                        .map(|quad| {
+                            let quad = quad?;
+                            Ok(InternalQuad {
+                                subject: quad.subject,
+                                predicate: quad.predicate,
+                                object: quad.object,
+                                graph_name: None,
+                            })
                         })
-                    }).collect::<Vec<_>>()
+                        .collect::<Vec<_>>()
                 }
             } else {
                 self.reader
@@ -133,27 +135,30 @@ impl QueryableDataset for DatasetView {
                             object: quad.object,
                             graph_name: None,
                         })
-                    }).collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>()
             }
         } else if let Some(named_graphs) = &self.dataset.named {
             named_graphs
                 .iter()
-                .map(|graph_name| {
+                .flat_map(|graph_name| {
                     self.reader
                         .quads_for_pattern(subject, predicate, object, Some(graph_name))
-                }).flatten().map(|quad| {
-                let quad = quad?;
-                Ok(InternalQuad {
-                    subject: quad.subject,
-                    predicate: quad.predicate,
-                    object: quad.object,
-                    graph_name: if quad.graph_name.is_default_graph() {
-                        None
-                    } else {
-                        Some(quad.graph_name)
-                    },
                 })
-            }).collect::<Vec<_>>()
+                .map(|quad| {
+                    let quad = quad?;
+                    Ok(InternalQuad {
+                        subject: quad.subject,
+                        predicate: quad.predicate,
+                        object: quad.object,
+                        graph_name: if quad.graph_name.is_default_graph() {
+                            None
+                        } else {
+                            Some(quad.graph_name)
+                        },
+                    })
+                })
+                .collect::<Vec<_>>()
         } else {
             self.reader
                 .quads_for_pattern(subject, predicate, object, None)
@@ -172,7 +177,8 @@ impl QueryableDataset for DatasetView {
                             Some(quad.graph_name)
                         },
                     }))
-                }).collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>()
         };
         iter.into_iter()
     }
