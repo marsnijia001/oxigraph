@@ -53,9 +53,12 @@ impl<D: QueryableDataset> EvalDataset<D> {
         object: Option<&D::InternalTerm>,
         graph_name: Option<Option<&D::InternalTerm>>,
     ) -> impl Iterator<Item = Result<InternalQuad<D>, QueryEvaluationError>> + 'static {
-        self.dataset
+
+        let data = self.dataset
             .internal_quads_for_pattern(subject, predicate, object, graph_name)
             .map(|r| r.map_err(|e| QueryEvaluationError::Dataset(Box::new(e))))
+            .collect::<Vec<Result<InternalQuad<D>, QueryEvaluationError>>>();
+        data.into_iter()
     }
 
     fn internal_named_graphs<'a>(

@@ -36,7 +36,7 @@ pub trait QueryableDataset: Sized + 'static {
         predicate: Option<&Self::InternalTerm>,
         object: Option<&Self::InternalTerm>,
         graph_name: Option<Option<&Self::InternalTerm>>,
-    ) -> Box<dyn Iterator<Item = Result<InternalQuad<Self>, Self::Error>>>; // TODO: consider `impl`
+    ) -> impl Iterator<Item = Result<InternalQuad<Self>, Self::Error>>; // TODO: consider `impl`
 
     /// Fetches the list of dataset named graphs
     fn internal_named_graphs<'a>(
@@ -117,7 +117,7 @@ impl QueryableDataset for Dataset {
         predicate: Option<&Term>,
         object: Option<&Term>,
         graph_name: Option<Option<&Term>>,
-    ) -> Box<dyn Iterator<Item = Result<InternalQuad<Self>, Infallible>>> {
+    ) -> impl Iterator<Item = Result<InternalQuad<Self>, Infallible>> {
         // Awful implementation, please don't take it as an example
 
         #[allow(clippy::unnecessary_wraps)]
@@ -138,7 +138,7 @@ impl QueryableDataset for Dataset {
             Some(match TermRef::from(subject) {
                 TermRef::NamedNode(s) => SubjectRef::from(s),
                 TermRef::BlankNode(s) => s.into(),
-                TermRef::Literal(_) => return Box::new(empty()),
+                TermRef::Literal(_) => return Vec::new().into_iter(),
                 #[cfg(feature = "rdf-star")]
                 TermRef::Triple(s) => s.into(),
             })
@@ -149,7 +149,7 @@ impl QueryableDataset for Dataset {
             if let TermRef::NamedNode(p) = TermRef::from(predicate) {
                 Some(p)
             } else {
-                return Box::new(empty());
+                return Vec::new().into_iter();
             }
         } else {
             None
@@ -160,9 +160,9 @@ impl QueryableDataset for Dataset {
                 match TermRef::from(graph_name) {
                     TermRef::NamedNode(s) => s.into(),
                     TermRef::BlankNode(s) => s.into(),
-                    TermRef::Literal(_) => return Box::new(empty()),
+                    TermRef::Literal(_) => return Vec::new().into_iter(),
                     #[cfg(feature = "rdf-star")]
-                    TermRef::Triple(_) => return Box::new(empty()),
+                    TermRef::Triple(_) => return Vec::new().into_iter(),
                 }
             } else {
                 GraphNameRef::DefaultGraph
@@ -207,7 +207,7 @@ impl QueryableDataset for Dataset {
                 .map(quad_to_result)
                 .collect()
         };
-        Box::new(quads.into_iter())
+        quads.into_iter()
     }
 
     fn internalize_term(&self, term: Term) -> Result<Term, Infallible> {
